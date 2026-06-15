@@ -1,12 +1,14 @@
 import { intro, text, select, outro, isCancel, cancel, progress, tasks } from '@clack/prompts'
-import { execSync } from 'child_process'
+import { exec } from 'child_process';
+import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs-extra';
 
-
+const execAsync = promisify(exec);
 
 /* STATIC */
 const staticBuilder = async () => {
+
     
     const framework = await select({
     message: 'Choose your frontend framework:',
@@ -46,20 +48,9 @@ const staticBuilder = async () => {
 
     p.start('.')
     p.advance(3, '..');
-    execSync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
+    await execAsync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
     p.advance(7, '...');
     p.stop('done');
-
-    /* 
-    const activeTasks = await tasks([
-        {
-        title: 'Installing via npm',
-        task: async () => {
-        execSync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
-        return 'Installed via npm';
-        },
-    },
-    ]) */
 
     outro('All done');
 };
@@ -68,61 +59,68 @@ const staticBuilder = async () => {
 
 
 /* DYNAMIC */
-const dynamicBuilder = () => {
+const dynamicBuilder = async () => {
 
-  const framework = await select({
-    message: 'Choose your frontend framework:',
-    options: [
-        { value: 'react', label: 'React'},
-        { value: 'vue', label: 'Vue'}
-    ]
-    });
-    if (isCancel(framework)) {
-        cancel('Operation canceled.');
-        process.exit(0);
-    }
-
-    const language = await select({
-        message: 'What language will be used?',
+    const architecture = await select({
+        message: 'Choose your dynamic architecture style:',
         options: [
-            { value: 'js', label: 'JavaScript' },
-            { value: 'ts', label: 'TypeScript' },
-        ],
+            { value: 'ssr', label: 'Full-stack Meta-Framework (SSR)' },
+            { value: 'split', label: 'Separate Frontend + Dedicated Node Server' }
+        ]
     });
-
-    if (isCancel(language)) {
+    if (isCancel(architecture)) {
         cancel('Operation canceled.');
         process.exit(0);
     }
 
-    let activeTemplate = framework + '-' + language;
+    if (architecture === 'split') {
 
-    if (activeTemplate === 'react-js') {
-        activeTemplate = 'react';
+        const framework = await select({
+        message: 'Choose your frontend framework:',
+        options: [
+            { value: 'react', label: 'React'},
+            { value: 'vue', label: 'Vue'}
+        ]
+        });
+        if (isCancel(framework)) {
+            cancel('Operation canceled.');
+            process.exit(0);
+        }
+
+        const language = await select({
+            message: 'What language will be used?',
+            options: [
+                { value: 'js', label: 'JavaScript' },
+                { value: 'ts', label: 'TypeScript' },
+            ],
+        });
+
+        if (isCancel(language)) {
+            cancel('Operation canceled.');
+            process.exit(0);
+        }
+         let activeTemplate = framework + '-' + language;
+
+        if (activeTemplate === 'react-js') {
+            activeTemplate = 'react';
+        }
+        else if (activeTemplate === 'vue-js') {
+            activeTemplate = 'vue'
+        }
+        const p = progress({max: 10});
+
+        p.start('.')
+        p.advance(3, '..');
+        await execAsync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
+        p.advance(7, '...');
+        p.stop('done');
+
+        outro('All done');
     }
-    else if (activeTemplate === 'vue-js') {
-        activeTemplate = 'vue'
-    }
-    const p = progress({max: 10});
 
-    p.start('.')
-    p.advance(3, '..');
-    execSync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
-    p.advance(7, '...');
-    p.stop('done');
+  
 
-    /* 
-    const activeTasks = await tasks([
-        {
-        title: 'Installing via npm',
-        task: async () => {
-        execSync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
-        return 'Installed via npm';
-        },
-    },
-    ]) */
-
-    outro('All done');
+   
 }
 
 intro('Lazy Init');
