@@ -107,6 +107,7 @@ const dynamicBuilder = async () => {
         else if (activeTemplate === 'vue-js') {
             activeTemplate = 'vue'
         }
+        
         const p = progress({max: 10});
 
         p.start('.')
