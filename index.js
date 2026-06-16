@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 import { intro, text, select, outro, isCancel, cancel, progress, tasks } from '@clack/prompts'
 import { exec } from 'child_process';
 import { promisify } from 'util';
@@ -6,23 +8,31 @@ import fs from 'fs-extra';
 
 const execAsync = promisify(exec);
 
-/* STATIC */
-const staticBuilder = async () => {
-
-    
-    const framework = await select({
-    message: 'Choose your frontend framework:',
-    options: [
-        { value: 'react', label: 'React'},
-        { value: 'vue', label: 'Vue'}
-    ]
-    });
-
-    if (isCancel(framework)) {
-        cancel('Operation canceled.');
-        process.exit(0);
+const checkForFramework = async (where) => {
+    if (where === 'frontend') {
+         const framework = await select({
+            message: 'Choose your frontend framework:',
+            options: [
+                { value: 'vanilla', label: 'Vanilla'},
+                { value: 'react', label: 'React'},
+                { value: 'vue', label: 'Vue'}
+            ]
+        });
+        return framework;
     }
+    else {
+        const nodeFramework = await select({
+            message: 'What language will be used?',
+            options: [
+                { value: 'express', label: 'Express.js' },
+            ],
+        });
+        return nodeFramework;
+    }
+   
+}
 
+const checkForLanguage = async () => {
     const language = await select({
         message: 'What language will be used?',
         options: [
@@ -30,6 +40,30 @@ const staticBuilder = async () => {
             { value: 'ts', label: 'TypeScript' },
         ],
     });
+    return language
+};
+
+async function createServerFolder(projectName) {
+    const serverFolder = path.join(process.cwd(), projectName, 'server');
+
+    try {
+        await fs.ensureDir(serverFolder);
+    } catch (error) {
+        console.error('Error creating folder:', error);
+    }
+};
+
+const staticBuilder = async () => {
+
+    
+    const framework = await checkForFramework('frontend');
+
+    if (isCancel(framework)) {
+        cancel('Operation canceled.');
+        process.exit(0);
+    }
+
+    const language = await checkForLanguage();
 
     if (isCancel(language)) {
         cancel('Operation canceled.');
@@ -44,10 +78,13 @@ const staticBuilder = async () => {
     else if (activeTemplate === 'vue-js') {
         activeTemplate = 'vue'
     }
+    else if (activeTemplate === 'vanilla-js') {
+        activeTemplate = 'vanilla';
+    }
     const p = progress({max: 10});
 
     p.start('.')
-    p.advance(3, '..');
+    p.advance(3, 'Using vite template...');
     await execAsync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
     p.advance(7, '...');
     p.stop('done');
@@ -58,13 +95,12 @@ const staticBuilder = async () => {
 
 
 
-/* DYNAMIC */
 const dynamicBuilder = async () => {
 
     const architecture = await select({
         message: 'Choose your dynamic architecture style:',
         options: [
-            { value: 'ssr', label: 'Full-stack Meta-Framework (SSR)' },
+            //{ value: 'ssr', label: 'Full-stack Meta-Framework (SSR)' },
             { value: 'split', label: 'Separate Frontend + Dedicated Node Server' }
         ]
     });
@@ -75,31 +111,21 @@ const dynamicBuilder = async () => {
 
     if (architecture === 'split') {
 
-        const framework = await select({
-        message: 'Choose your frontend framework:',
-        options: [
-            { value: 'react', label: 'React'},
-            { value: 'vue', label: 'Vue'}
-        ]
-        });
+        const framework = await checkForFramework('frontend')
+
         if (isCancel(framework)) {
             cancel('Operation canceled.');
             process.exit(0);
         }
 
-        const language = await select({
-            message: 'What language will be used?',
-            options: [
-                { value: 'js', label: 'JavaScript' },
-                { value: 'ts', label: 'TypeScript' },
-            ],
-        });
+        const language = await checkForLanguage();
 
         if (isCancel(language)) {
-            cancel('Operation canceled.');
-            process.exit(0);
+        cancel('Operation canceled.');
+        process.exit(0);
         }
-         let activeTemplate = framework + '-' + language;
+        
+        let activeTemplate = framework + '-' + language;
 
         if (activeTemplate === 'react-js') {
             activeTemplate = 'react';
@@ -107,13 +133,30 @@ const dynamicBuilder = async () => {
         else if (activeTemplate === 'vue-js') {
             activeTemplate = 'vue'
         }
+        else if (activeTemplate === 'vanilla-js') {
+            activeTemplate = 'vanilla';
+        }
+
+        const nodeFramework = await checkForFramework('node');
+
+        if (isCancel(nodeFramework)) {
+            cancel('Operation canceled.');
+            process.exit(0);
+        }
         
         const p = progress({max: 10});
+        const clientFolder = path.join(process.cwd(), `${projectName}/client`)
+        console.log(clientFolder);
 
         p.start('.')
-        p.advance(3, '..');
-        await execAsync(`npm create vite@latest "${projectName}" -- --template ${activeTemplate}`);
-        p.advance(7, '...');
+        p.advance(1, 'Making a project folder.');
+        await createServerFolder(projectName);
+        p.advance(3, 'Using vite template...');
+        await execAsync(`npm create vite@latest client -- --template ${activeTemplate}`, {cwd: path.join(process.cwd(), `${projectName}`)});
+        p.advance(5, 'Making the server file.');
+        await fs.copy(`templates/server-${nodeFramework}`, path.join(process.cwd(), `${projectName}/server`));
+        p.advance(8, 'Installing the dependencies.');
+        await execAsync(`npm i ${nodeFramework}`, {cwd: path.join(process.cwd(), `${projectName}/server`)});
         p.stop('done');
 
         outro('All done');
@@ -124,9 +167,10 @@ const dynamicBuilder = async () => {
    
 }
 
+
 intro('Lazy Init');
 
-const projectName = await text({ message: 'What is the projects called?'}); 
+const projectName = await text({ message: 'What is the project called?'}); 
 
 if (isCancel(projectName)){
     cancel('Operation canceled.');
@@ -138,7 +182,7 @@ const projectType = await select({
     options: [
         { value: 'static', label: 'Static - Frontend'},
         { value: 'dynamic', label: 'Dynamic - Fullstack'},
-        { value: 'api', label: 'API - Backend'}
+        //{ value: 'api', label: 'API - Backend'}
     ]
 });
 if (isCancel(projectType)){
