@@ -1,25 +1,25 @@
+# Dependencies
+node_modules/
+dist/
+build/
+
+# Secrets & Environment Variables
+.env
+.env.local
+.env.*.local
+
 # Logs
-logs
-*.log
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
-pnpm-debug.log*
-lerna-debug.log*
+.pnpm-debug.log*
 
-node_modules
-dist
-dist-ssr
-*.local
-.env
-
-# Editor directories and files
-.vscode/*
-!.vscode/extensions.json
-.idea
+# System Junk (Mac/Windows settings files)
 .DS_Store
+Thumbs.db
+
+# Editor Bloat
+.vscode/
+.idea/
 *.suo
 *.ntvs*
-*.njsproj
-*.sln
-*.sw?
