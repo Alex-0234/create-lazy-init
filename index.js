@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { intro, text, select, outro, isCancel, cancel, progress } from '@clack/prompts';
+import { intro, text, select, outro, isCancel, cancel, progress, confirm } from '@clack/prompts';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
@@ -12,108 +12,120 @@ const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+/* HELPER FUNCTIONS */
 
-
-
-
-        {  /* HELPER FUNCTIONS */   }
-
-    const handleCancel = (prop) => {
-        if (isCancel(prop)) { cancel('Operation canceled.'); process.exit(0); }
+const handleCancel = (prop) => {
+    if (isCancel(prop)) { 
+        cancel('Operation canceled.'); 
+        process.exit(0); 
     }
+}
 
-    async function createFolder(projectName, folderName) {
-        const folder = path.join(process.cwd(), projectName, `${folderName}`);
-        await fs.ensureDir(folder);
-    };
-
-
-    const checkForFramework = async (where) => {
-        if (where === 'frontend') {
-            const framework = await select({
-                message: 'Choose your frontend framework:',
-                options: [
-                    { value: 'vanilla', label: 'Vanilla'},
-                    { value: 'react', label: 'React'},
-                    { value: 'vue', label: 'Vue'},
-                    //{ value: 'angular', label: 'Angular'},
-                ]
-            });
-            return framework;
-        } else {
-            const nodeFramework = await select({
-                message: 'Choose your backend framework:', 
-                options: [
-                    { value: 'express', label: 'Express.js' },
-                    //{ value: 'nestJS', label: 'NestJS' },
-                    //{ value: 'django', label: 'Django' },
-                ],
-            });
-            return nodeFramework;
-        }
-    }
-
-    const checkForLanguage = async () => {
-        const language = await select({
-            message: 'What frontend language will be used?',
+const checkForFramework = async (where) => {
+    if (where === 'frontend') {
+        const framework = await select({
+            message: 'Choose your frontend framework:',
             options: [
-                { value: 'js', label: 'JavaScript' },
-                { value: 'ts', label: 'TypeScript' },
-                //{ value: 'kotlin', label: 'Kotlin' },
-                //{ value: 'swift', label: 'Swift' },
+                { value: 'vanilla', label: 'Vanilla'},
+                { value: 'react', label: 'React'},
+                { value: 'vue', label: 'Vue'},
+            ]
+        });
+        return framework;
+    } else {
+        const nodeFramework = await select({
+            message: 'Choose your backend framework:', 
+            options: [
+                { value: 'express', label: 'Express.js' },
             ],
         });
-        return language;
-    };
+        return nodeFramework;
+    }
+}
 
+const checkForLanguage = async () => {
+    const language = await select({
+        message: 'What frontend language will be used?',
+        options: [
+            { value: 'js', label: 'JavaScript' },
+            { value: 'ts', label: 'TypeScript' },
+        ],
+    });
+    return language;
+};
+const handleEslintCleanup = async (targetPath, addEslint) => {
+    if (!addEslint) {
+        await fs.remove(path.join(targetPath, 'eslint.config.js'));
 
-    {/* MAIN FUNCTIONS */}
+        const packageJsonPath = path.join(targetPath, 'package.json');
+        const pkg = await fs.readJson(packageJsonPath);
 
-const staticBuilder = async (projectName) => {
+        if (pkg.devDependencies) {
+            Object.keys(pkg.devDependencies).forEach((key) => {
+                if (key.includes('eslint')) {
+                    delete pkg.devDependencies[key];
+                }
+            });
+        }
+        
+        if (pkg.scripts && pkg.scripts.lint) {
+            delete pkg.scripts.lint;
+        }
 
+        await fs.writeJson(packageJsonPath, pkg, { spaces: 2 });
+    }
+}
+
+/* MAIN BUILDERS */
+
+const staticBuilder = async (targetPath) => {
     const framework = await checkForFramework('frontend');
     handleCancel(framework);
 
     const language = await checkForLanguage();
     handleCancel(language);
 
+    const addEslint = await confirm({
+        message: 'Do you want ESLint configured?',
+        initialValue: true,
+    });
+
     let activeTemplate = framework + '-' + language;
     if (activeTemplate === 'vue-js') activeTemplate = 'vue';
 
-    const p = progress({ max: 10 });
+    const p = progress({ max: 2 });
     p.start('Scaffolding static project...');
+    p.advance(1, 'Reaching into templates...');
 
-    p.advance(3, 'Running Vite installer...');
+    if (activeTemplate.startsWith('vanilla')) {
+        await fs.copy(
+            path.join(__dirname, 'templates', 'client-vanilla', `${activeTemplate}`),
+            targetPath
+        );
+    }
+    else if (activeTemplate.startsWith('react')) {
+        await fs.copy(
+            path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
+            targetPath
+        );
+    }
+    else {
+        await execAsync(`npx --yes create-vite@latest "${targetPath}" --template ${activeTemplate}`);
+    }
+    
+    p.advance(2, 'Handling any clean-ups...');
+        await handleEslintCleanup(targetPath, addEslint);
 
-        if (activeTemplate.startsWith('vanilla')) {
-                await fs.copy(
-                    path.join(__dirname, 'templates', 'client-vanilla', `${activeTemplate}`),
-                    path.join(process.cwd(), `${projectName}`)
-                );
-        }
-        else if (activeTemplate.startsWith('react')) {
-                await fs.copy(
-                    path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
-                    path.join(process.cwd(), `${projectName}`)
-                );
-        }
-        else {
-            await execAsync(`npx --yes create-vite@latest "${projectName}" --template ${activeTemplate}`);
-        }
-    
-    
-    p.advance(7, 'Finalizing files...');
     p.stop('Done!');
 
     outro('All set up! Happy coding.');
 };
 
-const dynamicBuilder = async (projectName) => {
+const dynamicBuilder = async (targetPath) => {
     const architecture = await select({
         message: 'Choose your dynamic architecture style:',
         options: [
             { value: 'split', label: 'Separate Frontend + Dedicated Node Server' },
-            // 
         ]
     });
     handleCancel(architecture);
@@ -132,40 +144,50 @@ const dynamicBuilder = async (projectName) => {
             const nodeFramework = await checkForFramework('node');
             handleCancel(nodeFramework);
             
+            const addEslint = await confirm({
+                message: 'Do you want ESLint configured?',
+                initialValue: true,
+            });
+            handleCancel(addEslint);
+            
             const p = progress({ max: 10 });
-
             p.start('Building fullstack split-project...');
             
             p.advance(1, 'Creating directories...');
-            await createFolder(projectName, 'server');
+            const clientPath = path.join(targetPath, 'client');
+            const serverPath = path.join(targetPath, 'server');
+            
+            await fs.ensureDir(clientPath);
+            await fs.ensureDir(serverPath);
             
             p.advance(3, 'Scaffolding Vite frontend...');
             if (activeTemplate.startsWith('vanilla')) {
                 await fs.copy(
                     path.join(__dirname, 'templates', 'client-vanilla', `${activeTemplate}`),
-                    path.join(process.cwd(), `${projectName}`)
+                    clientPath
                 );
             }
             else if (activeTemplate.startsWith('react')) {
-                    await fs.copy(
-                        path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
-                        path.join(process.cwd(), `${projectName}`)
-                    );
+                await fs.copy(
+                    path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
+                    clientPath
+                );
             }
             else {
-                await execAsync(`npx --yes create-vite@latest "${projectName}" --template ${activeTemplate}`);
+                await execAsync(`npx --yes create-vite@latest "${clientPath}" --template ${activeTemplate}`);
             }
             
             p.advance(5, 'Injecting server boilerplate...');
             await fs.copy(
                 path.join(__dirname, 'templates', `server-${nodeFramework}`), 
-                path.join(process.cwd(), projectName, 'server')
+                serverPath
             );
             
-            p.advance(8, 'Installing backend dependencies...');
+            p.advance(9, 'Handling any clean-ups...');
+            await handleEslintCleanup(clientPath, addEslint);
             
             p.stop('Project generated successfully!');
-            outro('Your backend and frontend environments are ready.');
+            outro(`Your fullstack environment is ready at: ${targetPath}`);
         }
         catch (err) {
             console.error('\nAn error occurred during build:', err);
@@ -173,28 +195,36 @@ const dynamicBuilder = async (projectName) => {
     }
 }
 
+/* CLI INTRO */
+
 intro('Lazy Init');
 
-const projectName = await text({ message: 'What is the project called?' }); 
-handleCancel(projectName);
+let userInput = process.argv[2];
+
+if (!userInput) {
+    userInput = await text({ 
+        message: 'Where do you want to initialize?', 
+        placeholder: '"." for current folder'
+    }); 
+    handleCancel(userInput);
+}
+
+const targetPath = userInput === '.' ? process.cwd() : path.resolve(process.cwd(), userInput);
 
 const projectType = await select({
     message: 'What type will it be?',
     options: [
         { value: 'static', label: 'Static - Frontend' },
         { value: 'dynamic', label: 'Dynamic - Fullstack' },
-        //{ value: 'api', label: 'API-only - Backend'}
     ]
 });
 handleCancel(projectType);
 
 switch (projectType) {
     case 'static': 
-        await staticBuilder(projectName);
+        await staticBuilder(targetPath);
         break;
     case 'dynamic':
-        await dynamicBuilder(projectName);
+        await dynamicBuilder(targetPath);
         break;
-
-    // api
 };
