@@ -8,14 +8,14 @@ I built this because running standard template initializers forces you to spend 
 You don't even need to install it. Just run this in your terminal:
 
 ```Bash
-npm create lazy-init
+npm create lazy-init@latest
 ```
 
 ###### In-Place Setup
 If you like creating a folder first, opening it in VS Code, and running the tool directly inside it, just type a dot (.) to initialize in current folder. 
 
 ```Bash
-npm create lazy-init .
+npm create lazy-init@latest .
 ```
 When running without specified path the CLI will ask and the same rules apply.
 ![create-lazy-init preview](./assets/path-selection.png)
