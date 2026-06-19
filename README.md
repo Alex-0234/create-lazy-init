@@ -45,8 +45,8 @@ A perfectly isolated monorepo environment. The frontend handles the client-side,
 ```Plaintext
 my-app/
 ├── client/   # Clean Static setup (cleaned up vite)
-└── server/   # Pure Express.js backend (no boilerplate clutter)
-     ├── server.js   # Currently only supports express
+└── server/   # Pure Express.js backend (different frameworks soon...)
+     ├── server.js   
      └── .env  # Only some basic environmental variables
 ```
 
@@ -64,7 +64,7 @@ my-app/
 
 ## Roadmap (Planned Fluff)
 Features being built out as optional, opt-in prompts during setup:
-- [ ] Automated Git repository initialization (`git init`)
+- [X] Automated Git repository initialization (`git init`)
 - [ ] Optional Tailwind CSS setup (with pre-configured `tailwind-merge` utilities)
 - [ ] Optional Creative Suite toggle (Installs GSAP + Lenis Smooth Scroll setup)
 - [ ] API-only backend architecture setup (skips the frontend completely)

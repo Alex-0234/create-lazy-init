@@ -1,6 +1,6 @@
 {
   "name": "create-lazy-init",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "type": "module",
   "license": "MIT",
   "author": "Alex Liska",
@@ -17,7 +17,23 @@
     "type": "git",
     "url": "git+https://github.com/Alex-0234/create-lazy-init.git"
   },
-  "keywords": [],
+  "keywords": [
+    "cli",
+    "scaffold",
+    "scaffolding",
+    "boilerplate",
+    "initializer",
+    "create-app",
+    "vite",
+    "express",
+    "fullstack",
+    "monorepo",
+    "react",
+    "vue",
+    "vanilla",
+    "minimal",
+    "zero-fluff"
+  ],
   "bugs": {
     "url": "https://github.com/Alex-0234/create-lazy-init/issues"
   },

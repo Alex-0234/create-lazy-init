@@ -76,6 +76,18 @@ const handleEslintCleanup = async (targetPath, addEslint) => {
     }
 }
 
+async function initializeGit(targetPath) {
+    try {
+        await execAsync('git init', { cwd: targetPath });
+        
+        await execAsync('git add .', { cwd: targetPath });
+        
+        await execAsync('git commit -m "chore: initial commit from lazy-init"', { cwd: targetPath });
+    } catch (error) {
+
+    }
+}
+
 /* MAIN BUILDERS */
 
 const staticBuilder = async (targetPath) => {
@@ -89,11 +101,18 @@ const staticBuilder = async (targetPath) => {
         message: 'Do you want ESLint configured?',
         initialValue: true,
     });
+    handleCancel(addEslint);
+
+    const shouldGitInit = await confirm({
+        message: 'Initialize a local Git repository?',
+        initialValue: true, 
+    });
+    handleCancel(shouldGitInit);
 
     let activeTemplate = framework + '-' + language;
     if (activeTemplate === 'vue-js') activeTemplate = 'vue';
 
-    const p = progress({ max: 2 });
+    const p = progress({ max: 5 });
     p.start('Scaffolding static project...');
     p.advance(1, 'Reaching into templates...');
 
@@ -115,6 +134,11 @@ const staticBuilder = async (targetPath) => {
     
     p.advance(2, 'Handling any clean-ups...');
         await handleEslintCleanup(targetPath, addEslint);
+
+    if (shouldGitInit) {
+        p.advance(4, 'Initializing local Git repository...');
+        await initializeGit(targetPath);
+    }
 
     p.stop('Done!');
 
@@ -149,6 +173,12 @@ const dynamicBuilder = async (targetPath) => {
                 initialValue: true,
             });
             handleCancel(addEslint);
+
+            const shouldGitInit = await confirm({
+                message: 'Initialize a local Git repository?',
+                initialValue: true, 
+            });
+            handleCancel(shouldGitInit);
             
             const p = progress({ max: 10 });
             p.start('Building fullstack split-project...');
@@ -183,8 +213,13 @@ const dynamicBuilder = async (targetPath) => {
                 serverPath
             );
             
-            p.advance(9, 'Handling any clean-ups...');
+            p.advance(7, 'Handling any clean-ups...');
             await handleEslintCleanup(clientPath, addEslint);
+
+            if (shouldGitInit) {
+                p.advance(9, 'Initializing local Git repository...');
+                await initializeGit(targetPath);
+            }
             
             p.stop('Project generated successfully!');
             outro(`Your fullstack environment is ready at: ${targetPath}`);
