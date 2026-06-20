@@ -62,7 +62,7 @@ const handleEslintCleanup = async (targetPath, addEslint) => {
 
         if (pkg.devDependencies) {
             Object.keys(pkg.devDependencies).forEach((key) => {
-                if (key.includes('eslint')) {
+                if (key.includes('eslint') || key.contains('globals')) {
                     delete pkg.devDependencies[key];
                 }
             });
@@ -110,7 +110,6 @@ const staticBuilder = async (targetPath) => {
     handleCancel(shouldGitInit);
 
     let activeTemplate = framework + '-' + language;
-    if (activeTemplate === 'vue-js') activeTemplate = 'vue';
 
     const p = progress({ max: 5 });
     p.start('Scaffolding static project...');
@@ -125,6 +124,12 @@ const staticBuilder = async (targetPath) => {
     else if (activeTemplate.startsWith('react')) {
         await fs.copy(
             path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
+            targetPath
+        );
+    }
+    else if (activeTemplate.startsWith('vue')) {
+        await fs.copy(
+            path.join(__dirname, 'templates', 'client-vue', `${activeTemplate}`),
             targetPath
         );
     }
@@ -163,7 +168,6 @@ const dynamicBuilder = async (targetPath) => {
             handleCancel(language);
             
             let activeTemplate = framework + '-' + language;
-            if (activeTemplate === 'vue-js') activeTemplate = 'vue';
 
             const nodeFramework = await checkForFramework('node');
             handleCancel(nodeFramework);
@@ -201,6 +205,12 @@ const dynamicBuilder = async (targetPath) => {
                 await fs.copy(
                     path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
                     clientPath
+                );
+            }
+            else if (activeTemplate.startsWith('vue')) {
+                await fs.copy(
+                    path.join(__dirname, 'templates', 'client-vue', `${activeTemplate}`),
+                    targetPath
                 );
             }
             else {

@@ -1,23 +1,21 @@
-{
-  "name": "create-lazy-init",
-  "version": "0.5.1",
-  "type": "module",
-  "license": "MIT",
-  "author": "Alex Liska",
-  "bin": {
-    "create-lazy-init": "./index.js",
-    "lazy-init": "./update.js"
-  },
-  "main": "index.js",
-  "scripts": {
-    "dev": "node index.js",
-    "test": "node update.js"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/Alex-0234/create-lazy-init.git"
-  },
-  "keywords": [
+{"name":"create-lazy-init",
+"version":"0.5.2",
+"type":"module",
+"license":"MIT",
+"author":"Alex Liska",
+"bin":{
+    "create-lazy-init":"./index.js",
+    "lazy-init":"./update.js"
+},
+"main":"index.js",
+"scripts":{ 
+    "dev":"node index.js",
+    "test":"node update.js"
+},
+"repository":{  
+    "type":"git",
+    "url":"git+https://github.com/Alex-0234/create-lazy-init.git"},
+"keywords":[
     "cli",
     "scaffold",
     "scaffolding",
@@ -33,13 +31,13 @@
     "vanilla",
     "minimal",
     "zero-fluff"
-  ],
-  "bugs": {
-    "url": "https://github.com/Alex-0234/create-lazy-init/issues"
-  },
-  "homepage": "https://github.com/Alex-0234/create-lazy-init#readme",
-  "dependencies": {
-    "@clack/prompts": "^1.5.1",
-    "fs-extra": "^11.3.5"
-  }
-}
+],
+"bugs":{
+    "url":"https://github.com/Alex-0234/create-lazy-init/issues"
+},
+"homepage":"https://github.com/Alex-0234/create-lazy-init#readme",
+"dependencies":{
+    "@clack/prompts":"^1.5.1",
+    "clsx":"^2.1.1",
+    "fs-extra":"^11.3.5"
+}}
