@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-import { intro, text, select, outro, isCancel, cancel, progress, confirm } from '@clack/prompts';
+import { intro, text, select, outro, isCancel, cancel, progress, confirm, multiselect } from '@clack/prompts';
 import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
@@ -62,7 +62,7 @@ const handleEslintCleanup = async (targetPath, addEslint) => {
 
         if (pkg.devDependencies) {
             Object.keys(pkg.devDependencies).forEach((key) => {
-                if (key.includes('eslint') || key.contains('globals')) {
+                if (key.includes('eslint') || key.includes('globals')) {
                     delete pkg.devDependencies[key];
                 }
             });
@@ -108,6 +108,9 @@ const staticBuilder = async (targetPath) => {
         initialValue: true, 
     });
     handleCancel(shouldGitInit);
+
+
+    
 
     let activeTemplate = framework + '-' + language;
 
