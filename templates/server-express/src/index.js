@@ -14,9 +14,6 @@ app.use(cors({
 }));
 app.use(express.json());
 
-app.get('/health', (req, res) => {
-    res.status200().json({ status: 'healthy', timestamp: new Date() });
-});
 
 app.use('/api', apiRoutes);
 

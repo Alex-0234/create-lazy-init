@@ -12,6 +12,9 @@ const execAsync = promisify(exec);
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+
+
+const additionalTools = ['eslint','tailwindcss','lenis','gsap'];
 /* HELPER FUNCTIONS */
 
 const handleCancel = (prop) => {
@@ -53,8 +56,25 @@ const checkForLanguage = async () => {
     });
     return language;
 };
-const handleEslintCleanup = async (targetPath, addEslint) => {
-    if (!addEslint) {
+const handleCleanup = (targetPath, additional) => {
+    if (additional === []) return;
+    let toolsToCleanup = additionalTools;
+    additional.forEach(addon => {
+        toolsToCleanup = toolsToCleanup.filter(e => e !== addon );
+    });
+    toolsToCleanup.forEach((tool) => {
+        switch (tool) {
+            case 'eslint':
+                handleEslintCleanup(targetPath, true);
+                break;
+            case 'tailwindcss':
+                handleTailwindCleanup(targetPath, true);
+                break;
+        }
+    })
+}
+const handleEslintCleanup = async (targetPath, removeEslint) => {
+    if (removeEslint) {
         await fs.remove(path.join(targetPath, 'eslint.config.js'));
 
         const packageJsonPath = path.join(targetPath, 'package.json');
@@ -73,6 +93,14 @@ const handleEslintCleanup = async (targetPath, addEslint) => {
         }
 
         await fs.writeJson(packageJsonPath, pkg, { spaces: 2 });
+    }
+}
+
+const handleTailwindCleanup = async (targetPath, removeTailwind) => {
+    if (removeTailwind) {
+        console.log('|----------------------------------------|');
+        console.log('|  Tailwind implementation under work... |');
+        console.log('|----------------------------------------|');
     }
 }
 
@@ -97,20 +125,32 @@ const staticBuilder = async (targetPath) => {
     const language = await checkForLanguage();
     handleCancel(language);
 
-    const addEslint = await confirm({
-        message: 'Do you want ESLint configured?',
-        initialValue: true,
+    const additional = await confirm({
+        message: 'Do you want to see optional fluff?',
+        initialValue: false,
     });
-    handleCancel(addEslint);
+    handleCancel(additional);
+    let selectedTools = [];
 
+    if (additional) {
+        selectedTools = await multiselect({
+            message: 'Select additional tools.',
+            options: [
+                { value: 'eslint', label: 'ESLint', hint: 'recommended' },
+                { value: 'tailwindcss', label: 'Tailwindcss'},
+                { value: 'lenis', label: 'Lenis', disabled: true },
+                { value: 'gsap', label: 'GSAP', disabled: true},
+            ],
+            required: false,
+        });
+    }
+    
     const shouldGitInit = await confirm({
         message: 'Initialize a local Git repository?',
         initialValue: true, 
     });
     handleCancel(shouldGitInit);
 
-
-    
 
     let activeTemplate = framework + '-' + language;
 
@@ -141,7 +181,7 @@ const staticBuilder = async (targetPath) => {
     }
     
     p.advance(2, 'Handling any clean-ups...');
-        await handleEslintCleanup(targetPath, addEslint);
+        await handleCleanup(targetPath, selectedTools);
 
     if (shouldGitInit) {
         p.advance(4, 'Initializing local Git repository...');
@@ -175,12 +215,26 @@ const dynamicBuilder = async (targetPath) => {
             const nodeFramework = await checkForFramework('node');
             handleCancel(nodeFramework);
             
-            const addEslint = await confirm({
-                message: 'Do you want ESLint configured?',
-                initialValue: true,
+            const additional = await confirm({
+                message: 'Do you want to see optional fluff?',
+                initialValue: false,
             });
-            handleCancel(addEslint);
+            handleCancel(additional);
+            let selectedTools = [];
 
+            if (additional) {
+                selectedTools = await multiselect({
+                    message: 'Select additional tools.',
+                    options: [
+                        { value: 'eslint', label: 'ESLint', hint: 'recommended' },
+                        { value: 'tailwindcss', label: 'Tailwindcss'},
+                        { value: 'lenis', label: 'Lenis', disabled: true },
+                        { value: 'gsap', label: 'GSAP', disabled: true},
+                    ],
+                    required: false,
+                });
+            }
+            
             const shouldGitInit = await confirm({
                 message: 'Initialize a local Git repository?',
                 initialValue: true, 
@@ -227,7 +281,7 @@ const dynamicBuilder = async (targetPath) => {
             );
             
             p.advance(7, 'Handling any clean-ups...');
-            await handleEslintCleanup(clientPath, addEslint);
+            await handleCleanup(clientPath, selectedTools);
 
             if (shouldGitInit) {
                 p.advance(9, 'Initializing local Git repository...');
