@@ -58,23 +58,29 @@ const checkForLanguage = async () => {
 };
 const handleCleanup = (targetPath, additional) => {
     if (additional === []) return;
-    let toolsToCleanup = additionalTools;
-    additional.forEach(addon => {
-        toolsToCleanup = toolsToCleanup.filter(e => e !== addon );
-    });
-    toolsToCleanup.forEach((tool) => {
-        switch (tool) {
-            case 'eslint':
-                handleEslintCleanup(targetPath, true);
-                break;
-            case 'tailwindcss':
-                handleTailwindCleanup(targetPath, true);
-                break;
-        }
-    })
+    try {
+        let toolsToCleanup = additionalTools;
+        additional.forEach(addon => {
+            toolsToCleanup = toolsToCleanup.filter(e => e !== addon );
+        });
+        toolsToCleanup.forEach((tool) => {
+            switch (tool) {
+                case 'eslint':
+                    handleEslintCleanup(targetPath, true);
+                    break;
+                case 'tailwindcss':
+                    handleTailwindCleanup(targetPath, true);
+                    break;
+            }
+        })
+    }
+    catch (err) {
+        console.log('Cleanup failed: ', err);
+    }
+    
 }
-const handleEslintCleanup = async (targetPath, removeEslint) => {
-    if (removeEslint) {
+const handleEslintCleanup = async (targetPath) => {
+    try {
         await fs.remove(path.join(targetPath, 'eslint.config.js'));
 
         const packageJsonPath = path.join(targetPath, 'package.json');
@@ -94,14 +100,36 @@ const handleEslintCleanup = async (targetPath, removeEslint) => {
 
         await fs.writeJson(packageJsonPath, pkg, { spaces: 2 });
     }
+    catch (err) {
+        console.log('Eslint cleanup failed: ', err);
+    }
 }
 
-const handleTailwindCleanup = async (targetPath, removeTailwind) => {
-    if (removeTailwind) {
-        console.log('|----------------------------------------|');
-        console.log('|  Tailwind implementation under work... |');
-        console.log('|----------------------------------------|');
+const handleTailwindCleanup = async (targetPath) => {
+    try {
+        let viteConfigPath = '';
+        if (fs.pathExists(path.join(targetPath, '/vite.config.js'))) {
+            viteConfigPath = path.join(targetPath, '/vite.config.js')
+        }
+        else {
+            viteConfigPath = path.join(targetPath, '/vite.config.ts')
+        }
+        const viteConfig = await fs.readFile(viteConfigPath, 'utf8');
+            console.log(viteConfig);
+            let newFile = viteConfig.replace(`import tailwindcss from '@tailwindcss/vite'`, '');
+            if (newFile.includes(', tailwindcss()')) {
+                newFile = newFile.replace(', tailwindcss()', '');
+            }
+            else {
+                newFile = newFile.replace('tailwindcss()', '');
+            }
+            
+        
+            await fs.outputFile(viteConfigPath, newFile);
     }
+    catch (err) {
+        console.log('Tailwindcss cleanup failed: ', err)
+    }    
 }
 
 async function initializeGit(targetPath) {
