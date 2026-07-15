@@ -308,7 +308,7 @@ const dynamicBuilder = async (targetPath) => {
             else if (activeTemplate.startsWith('vue')) {
                 await fs.copy(
                     path.join(__dirname, 'templates', 'client-vue', `${activeTemplate}`),
-                    targetPath
+                    clientPath
                 );
             }
             else {
