@@ -56,23 +56,19 @@ const checkForLanguage = async () => {
     });
     return language;
 };
-const handleCleanup = (targetPath, additional) => {
-    if (additional === []) return;
+const handleCleanup = async (targetPath, additional) => {
     try {
-        let toolsToCleanup = additionalTools;
-        additional.forEach(addon => {
-            toolsToCleanup = toolsToCleanup.filter(e => e !== addon );
-        });
-        toolsToCleanup.forEach((tool) => {
+        const toolsToCleanup = additionalTools.filter(tool => !additional.includes(tool));
+        for (const tool of toolsToCleanup) {
             switch (tool) {
                 case 'eslint':
-                    handleEslintCleanup(targetPath, true);
+                    await handleEslintCleanup(targetPath);
                     break;
                 case 'tailwindcss':
-                    handleTailwindCleanup(targetPath, true);
+                    await handleTailwindCleanup(targetPath);
                     break;
             }
-        })
+        }
     }
     catch (err) {
         console.log('Cleanup failed: ', err);
@@ -184,6 +180,7 @@ const staticBuilder = async (targetPath) => {
             ],
             required: false,
         });
+        handleCancel(selectedTools);
     }
     
     const shouldGitInit = await confirm({
@@ -274,6 +271,7 @@ const dynamicBuilder = async (targetPath) => {
                     ],
                     required: false,
                 });
+                handleCancel(selectedTools);
             }
             
             const shouldGitInit = await confirm({
