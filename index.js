@@ -77,6 +77,7 @@ const handleCleanup = async (targetPath, additional) => {
 const handleEslintCleanup = async (targetPath) => {
     try {
         await fs.remove(path.join(targetPath, 'eslint.config.js'));
+        await fs.remove(path.join(targetPath, 'eslint.config.mjs'));
 
         const packageJsonPath = path.join(targetPath, 'package.json');
         const pkg = await fs.readJson(packageJsonPath);
@@ -102,21 +103,28 @@ const handleEslintCleanup = async (targetPath) => {
 
 const handleTailwindCleanup = async (targetPath) => {
     try {
-        let viteConfigPath = path.join(targetPath, 'vite.config.js');
-        if (!(await fs.pathExists(viteConfigPath))) {
-            viteConfigPath = path.join(targetPath, 'vite.config.ts');
-        }
-        const viteConfig = await fs.readFile(viteConfigPath, 'utf8');
-        let newFile = viteConfig.replace(`import tailwindcss from '@tailwindcss/vite'`, '');
-        if (newFile.includes(', tailwindcss()')) {
-            newFile = newFile.replace(', tailwindcss()', '');
+        // Next.js templates wire tailwind through postcss, vite templates through the vite plugin
+        const postcssConfigPath = path.join(targetPath, 'postcss.config.mjs');
+        if (await fs.pathExists(postcssConfigPath)) {
+            await fs.remove(postcssConfigPath);
         }
         else {
-            newFile = newFile.replace('tailwindcss()', '');
+            let viteConfigPath = path.join(targetPath, 'vite.config.js');
+            if (!(await fs.pathExists(viteConfigPath))) {
+                viteConfigPath = path.join(targetPath, 'vite.config.ts');
+            }
+            const viteConfig = await fs.readFile(viteConfigPath, 'utf8');
+            let newFile = viteConfig.replace(`import tailwindcss from '@tailwindcss/vite'`, '');
+            if (newFile.includes(', tailwindcss()')) {
+                newFile = newFile.replace(', tailwindcss()', '');
+            }
+            else {
+                newFile = newFile.replace('tailwindcss()', '');
+            }
+            await fs.outputFile(viteConfigPath, newFile);
         }
-        await fs.outputFile(viteConfigPath, newFile);
 
-        const cssCandidates = ['src/index.css', 'src/style.css'];
+        const cssCandidates = ['src/app/globals.css', 'src/index.css', 'src/style.css'];
         for (const candidate of cssCandidates) {
             const cssPath = path.join(targetPath, candidate);
             if (await fs.pathExists(cssPath)) {
@@ -236,9 +244,76 @@ const dynamicBuilder = async (targetPath) => {
         message: 'Choose your dynamic architecture style:',
         options: [
             { value: 'split', label: 'Separate Frontend + Dedicated Node Server' },
+            { value: 'unified', label: 'Unified Fullstack (Next.js)' },
         ]
     });
     handleCancel(architecture);
+
+    if (architecture === 'unified') {
+        try {
+            const language = await checkForLanguage();
+            handleCancel(language);
+
+            const activeTemplate = 'next-' + language;
+
+            const additional = await confirm({
+                message: 'Do you want to see optional fluff?',
+                initialValue: false,
+            });
+            handleCancel(additional);
+            let selectedTools = [];
+
+            if (additional) {
+                selectedTools = await multiselect({
+                    message: 'Select additional tools.',
+                    options: [
+                        { value: 'eslint', label: 'ESLint', hint: 'recommended' },
+                        { value: 'tailwindcss', label: 'Tailwindcss'},
+                        { value: 'lenis', label: 'Lenis', disabled: true },
+                        { value: 'gsap', label: 'GSAP', disabled: true},
+                    ],
+                    required: false,
+                });
+                handleCancel(selectedTools);
+            }
+
+            const shouldGitInit = await confirm({
+                message: 'Initialize a local Git repository?',
+                initialValue: true,
+            });
+            handleCancel(shouldGitInit);
+
+            const p = progress({ max: 10 });
+            p.start('Building unified fullstack project...');
+
+            p.advance(3, 'Scaffolding Next.js app...');
+            await fs.copy(
+                path.join(__dirname, 'templates', 'fullstack-next', `${activeTemplate}`),
+                targetPath
+            );
+
+            // npm strips .gitignore from published packages, so templates ship _gitignore
+            const gitignoreStub = path.join(targetPath, '_gitignore');
+            if (await fs.pathExists(gitignoreStub)) {
+                await fs.move(gitignoreStub, path.join(targetPath, '.gitignore'), { overwrite: true });
+            }
+
+            p.advance(7, 'Handling any clean-ups...');
+            await handleCleanup(targetPath, selectedTools);
+
+            if (shouldGitInit) {
+                p.advance(9, 'Initializing local Git repository...');
+                await initializeGit(targetPath);
+            }
+
+            p.stop('Project generated successfully!');
+            outro(`Your fullstack environment is ready at: ${targetPath}`);
+        }
+        catch (err) {
+            console.error('\nAn error occurred during build:', err);
+        }
+        return;
+    }
 
     if (architecture === 'split') {
         try {
