@@ -77,7 +77,6 @@ const handleCleanup = (targetPath, additional) => {
     catch (err) {
         console.log('Cleanup failed: ', err);
     }
-    
 }
 const handleEslintCleanup = async (targetPath) => {
     try {
@@ -107,29 +106,43 @@ const handleEslintCleanup = async (targetPath) => {
 
 const handleTailwindCleanup = async (targetPath) => {
     try {
-        let viteConfigPath = '';
-        if (fs.pathExists(path.join(targetPath, '/vite.config.js'))) {
-            viteConfigPath = path.join(targetPath, '/vite.config.js')
-        }
-        else {
-            viteConfigPath = path.join(targetPath, '/vite.config.ts')
+        let viteConfigPath = path.join(targetPath, 'vite.config.js');
+        if (!(await fs.pathExists(viteConfigPath))) {
+            viteConfigPath = path.join(targetPath, 'vite.config.ts');
         }
         const viteConfig = await fs.readFile(viteConfigPath, 'utf8');
-            console.log(viteConfig);
-            let newFile = viteConfig.replace(`import tailwindcss from '@tailwindcss/vite'`, '');
-            if (newFile.includes(', tailwindcss()')) {
-                newFile = newFile.replace(', tailwindcss()', '');
+        let newFile = viteConfig.replace(`import tailwindcss from '@tailwindcss/vite'`, '');
+        if (newFile.includes(', tailwindcss()')) {
+            newFile = newFile.replace(', tailwindcss()', '');
+        }
+        else {
+            newFile = newFile.replace('tailwindcss()', '');
+        }
+        await fs.outputFile(viteConfigPath, newFile);
+
+        const cssCandidates = ['src/index.css', 'src/style.css'];
+        for (const candidate of cssCandidates) {
+            const cssPath = path.join(targetPath, candidate);
+            if (await fs.pathExists(cssPath)) {
+                const css = await fs.readFile(cssPath, 'utf8');
+                await fs.outputFile(cssPath, css.replace(`@import "tailwindcss";\n\n`, ''));
             }
-            else {
-                newFile = newFile.replace('tailwindcss()', '');
-            }
-            
-        
-            await fs.outputFile(viteConfigPath, newFile);
+        }
+
+        const packageJsonPath = path.join(targetPath, 'package.json');
+        const pkg = await fs.readJson(packageJsonPath);
+        if (pkg.devDependencies) {
+            Object.keys(pkg.devDependencies).forEach((key) => {
+                if (key.includes('tailwindcss')) {
+                    delete pkg.devDependencies[key];
+                }
+            });
+        }
+        await fs.writeJson(packageJsonPath, pkg, { spaces: 2 });
     }
     catch (err) {
         console.log('Tailwindcss cleanup failed: ', err)
-    }    
+    }
 }
 
 async function initializeGit(targetPath) {
