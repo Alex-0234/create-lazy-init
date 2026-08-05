@@ -3,7 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import apiRoutes from './routes/api.js';
 
-dotenv.config();
+dotenv.config({ quiet: true });
 
 const app = express();
 const PORT = process.env.PORT || 5000;

@@ -14,13 +14,25 @@ const __dirname = path.dirname(__filename);
 
 
 
-const additionalTools = ['eslint','tailwindcss','lenis','gsap'];
+const additionalTools = ['eslint', 'tailwindcss'];
+
+const clientTemplateDirs = {
+    vanilla: 'client-vanilla',
+    react: 'client-react',
+    vue: 'client-vue',
+};
+
+const dotfileStubs = {
+    _gitignore: '.gitignore',
+    _env: '.env',
+};
+
 /* HELPER FUNCTIONS */
 
 const handleCancel = (prop) => {
-    if (isCancel(prop)) { 
-        cancel('Operation canceled.'); 
-        process.exit(0); 
+    if (isCancel(prop)) {
+        cancel('Operation canceled.');
+        process.exit(0);
     }
 }
 
@@ -37,7 +49,7 @@ const checkForFramework = async (where) => {
         return framework;
     } else {
         const nodeFramework = await select({
-            message: 'Choose your backend framework:', 
+            message: 'Choose your backend framework:',
             options: [
                 { value: 'express', label: 'Express.js' },
             ],
@@ -56,6 +68,44 @@ const checkForLanguage = async () => {
     });
     return language;
 };
+
+const checkForTools = async () => {
+    const additional = await confirm({
+        message: 'Do you want to see optional fluff?',
+        initialValue: false,
+    });
+    handleCancel(additional);
+
+    if (!additional) return [];
+
+    const selectedTools = await multiselect({
+        message: 'Select additional tools.',
+        options: [
+            { value: 'eslint', label: 'ESLint', hint: 'recommended' },
+            { value: 'tailwindcss', label: 'Tailwindcss' },
+        ],
+        required: false,
+    });
+    handleCancel(selectedTools);
+
+    return selectedTools;
+};
+
+// npm strips dotfiles such as .gitignore and .env from published packages, so templates ship stubs
+const restoreDotfiles = async (targetPath) => {
+    for (const [stub, dotfile] of Object.entries(dotfileStubs)) {
+        const stubPath = path.join(targetPath, stub);
+        if (await fs.pathExists(stubPath)) {
+            await fs.move(stubPath, path.join(targetPath, dotfile), { overwrite: true });
+        }
+    }
+};
+
+const copyTemplate = async (templateDir, targetPath) => {
+    await fs.copy(path.join(__dirname, 'templates', ...templateDir), targetPath);
+    await restoreDotfiles(targetPath);
+};
+
 const handleCleanup = async (targetPath, additional) => {
     try {
         const toolsToCleanup = additionalTools.filter(tool => !additional.includes(tool));
@@ -89,7 +139,7 @@ const handleEslintCleanup = async (targetPath) => {
                 }
             });
         }
-        
+
         if (pkg.scripts && pkg.scripts.lint) {
             delete pkg.scripts.lint;
         }
@@ -114,13 +164,8 @@ const handleTailwindCleanup = async (targetPath) => {
                 viteConfigPath = path.join(targetPath, 'vite.config.ts');
             }
             const viteConfig = await fs.readFile(viteConfigPath, 'utf8');
-            let newFile = viteConfig.replace(`import tailwindcss from '@tailwindcss/vite'`, '');
-            if (newFile.includes(', tailwindcss()')) {
-                newFile = newFile.replace(', tailwindcss()', '');
-            }
-            else {
-                newFile = newFile.replace('tailwindcss()', '');
-            }
+            let newFile = viteConfig.replace(/^import tailwindcss from ['"]@tailwindcss\/vite['"]\r?\n/m, '');
+            newFile = newFile.replace(/,\s*tailwindcss\(\)|tailwindcss\(\)/, '');
             await fs.outputFile(viteConfigPath, newFile);
         }
 
@@ -129,7 +174,7 @@ const handleTailwindCleanup = async (targetPath) => {
             const cssPath = path.join(targetPath, candidate);
             if (await fs.pathExists(cssPath)) {
                 const css = await fs.readFile(cssPath, 'utf8');
-                await fs.outputFile(cssPath, css.replace(`@import "tailwindcss";\n\n`, ''));
+                await fs.outputFile(cssPath, css.replace(/^@import ["']tailwindcss["'];(\r?\n)+/m, ''));
             }
         }
 
@@ -152,9 +197,9 @@ const handleTailwindCleanup = async (targetPath) => {
 async function initializeGit(targetPath) {
     try {
         await execAsync('git init', { cwd: targetPath });
-        
+
         await execAsync('git add .', { cwd: targetPath });
-        
+
         await execAsync('git commit -m "chore: initial commit from lazy-init"', { cwd: targetPath });
     } catch (error) {
 
@@ -164,79 +209,41 @@ async function initializeGit(targetPath) {
 /* MAIN BUILDERS */
 
 const staticBuilder = async (targetPath) => {
-    const framework = await checkForFramework('frontend');
-    handleCancel(framework);
+    try {
+        const framework = await checkForFramework('frontend');
+        handleCancel(framework);
 
-    const language = await checkForLanguage();
-    handleCancel(language);
+        const language = await checkForLanguage();
+        handleCancel(language);
 
-    const additional = await confirm({
-        message: 'Do you want to see optional fluff?',
-        initialValue: false,
-    });
-    handleCancel(additional);
-    let selectedTools = [];
+        const selectedTools = await checkForTools();
 
-    if (additional) {
-        selectedTools = await multiselect({
-            message: 'Select additional tools.',
-            options: [
-                { value: 'eslint', label: 'ESLint', hint: 'recommended' },
-                { value: 'tailwindcss', label: 'Tailwindcss'},
-                { value: 'lenis', label: 'Lenis', disabled: true },
-                { value: 'gsap', label: 'GSAP', disabled: true},
-            ],
-            required: false,
+        const shouldGitInit = await confirm({
+            message: 'Initialize a local Git repository?',
+            initialValue: true,
         });
-        handleCancel(selectedTools);
-    }
-    
-    const shouldGitInit = await confirm({
-        message: 'Initialize a local Git repository?',
-        initialValue: true, 
-    });
-    handleCancel(shouldGitInit);
+        handleCancel(shouldGitInit);
 
+        const p = progress({ max: shouldGitInit ? 3 : 2 });
+        p.start('Scaffolding static project...');
 
-    let activeTemplate = framework + '-' + language;
+        p.advance(1, 'Reaching into templates...');
+        await copyTemplate([clientTemplateDirs[framework], `${framework}-${language}`], targetPath);
 
-    const p = progress({ max: 5 });
-    p.start('Scaffolding static project...');
-    p.advance(1, 'Reaching into templates...');
-
-    if (activeTemplate.startsWith('vanilla')) {
-        await fs.copy(
-            path.join(__dirname, 'templates', 'client-vanilla', `${activeTemplate}`),
-            targetPath
-        );
-    }
-    else if (activeTemplate.startsWith('react')) {
-        await fs.copy(
-            path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
-            targetPath
-        );
-    }
-    else if (activeTemplate.startsWith('vue')) {
-        await fs.copy(
-            path.join(__dirname, 'templates', 'client-vue', `${activeTemplate}`),
-            targetPath
-        );
-    }
-    else {
-        await execAsync(`npx --yes create-vite@latest "${targetPath}" --template ${activeTemplate}`);
-    }
-    
-    p.advance(2, 'Handling any clean-ups...');
+        p.advance(1, 'Handling any clean-ups...');
         await handleCleanup(targetPath, selectedTools);
 
-    if (shouldGitInit) {
-        p.advance(4, 'Initializing local Git repository...');
-        await initializeGit(targetPath);
+        if (shouldGitInit) {
+            p.advance(1, 'Initializing local Git repository...');
+            await initializeGit(targetPath);
+        }
+
+        p.stop('Done!');
+        outro(`All set up at: ${targetPath}. Happy coding.`);
     }
-
-    p.stop('Done!');
-
-    outro('All set up! Happy coding.');
+    catch (err) {
+        console.error('\nAn error occurred during build:', err);
+    }
 };
 
 const dynamicBuilder = async (targetPath) => {
@@ -251,31 +258,7 @@ const dynamicBuilder = async (targetPath) => {
 
     if (architecture === 'unified') {
         try {
-            const language = await checkForLanguage();
-            handleCancel(language);
-
-            const activeTemplate = 'next-' + language;
-
-            const additional = await confirm({
-                message: 'Do you want to see optional fluff?',
-                initialValue: false,
-            });
-            handleCancel(additional);
-            let selectedTools = [];
-
-            if (additional) {
-                selectedTools = await multiselect({
-                    message: 'Select additional tools.',
-                    options: [
-                        { value: 'eslint', label: 'ESLint', hint: 'recommended' },
-                        { value: 'tailwindcss', label: 'Tailwindcss'},
-                        { value: 'lenis', label: 'Lenis', disabled: true },
-                        { value: 'gsap', label: 'GSAP', disabled: true},
-                    ],
-                    required: false,
-                });
-                handleCancel(selectedTools);
-            }
+            const selectedTools = await checkForTools();
 
             const shouldGitInit = await confirm({
                 message: 'Initialize a local Git repository?',
@@ -283,26 +266,17 @@ const dynamicBuilder = async (targetPath) => {
             });
             handleCancel(shouldGitInit);
 
-            const p = progress({ max: 10 });
+            const p = progress({ max: shouldGitInit ? 3 : 2 });
             p.start('Building unified fullstack project...');
 
-            p.advance(3, 'Scaffolding Next.js app...');
-            await fs.copy(
-                path.join(__dirname, 'templates', 'fullstack-next', `${activeTemplate}`),
-                targetPath
-            );
+            p.advance(1, 'Scaffolding Next.js app...');
+            await copyTemplate(['fullstack-next', 'next-ts'], targetPath);
 
-            // npm strips .gitignore from published packages, so templates ship _gitignore
-            const gitignoreStub = path.join(targetPath, '_gitignore');
-            if (await fs.pathExists(gitignoreStub)) {
-                await fs.move(gitignoreStub, path.join(targetPath, '.gitignore'), { overwrite: true });
-            }
-
-            p.advance(7, 'Handling any clean-ups...');
+            p.advance(1, 'Handling any clean-ups...');
             await handleCleanup(targetPath, selectedTools);
 
             if (shouldGitInit) {
-                p.advance(9, 'Initializing local Git repository...');
+                p.advance(1, 'Initializing local Git repository...');
                 await initializeGit(targetPath);
             }
 
@@ -322,86 +296,42 @@ const dynamicBuilder = async (targetPath) => {
 
             const language = await checkForLanguage();
             handleCancel(language);
-            
-            let activeTemplate = framework + '-' + language;
 
             const nodeFramework = await checkForFramework('node');
             handleCancel(nodeFramework);
-            
-            const additional = await confirm({
-                message: 'Do you want to see optional fluff?',
-                initialValue: false,
-            });
-            handleCancel(additional);
-            let selectedTools = [];
 
-            if (additional) {
-                selectedTools = await multiselect({
-                    message: 'Select additional tools.',
-                    options: [
-                        { value: 'eslint', label: 'ESLint', hint: 'recommended' },
-                        { value: 'tailwindcss', label: 'Tailwindcss'},
-                        { value: 'lenis', label: 'Lenis', disabled: true },
-                        { value: 'gsap', label: 'GSAP', disabled: true},
-                    ],
-                    required: false,
-                });
-                handleCancel(selectedTools);
-            }
-            
+            const selectedTools = await checkForTools();
+
             const shouldGitInit = await confirm({
                 message: 'Initialize a local Git repository?',
-                initialValue: true, 
+                initialValue: true,
             });
             handleCancel(shouldGitInit);
-            
-            const p = progress({ max: 10 });
+
+            const p = progress({ max: shouldGitInit ? 5 : 4 });
             p.start('Building fullstack split-project...');
-            
+
             p.advance(1, 'Creating directories...');
             const clientPath = path.join(targetPath, 'client');
             const serverPath = path.join(targetPath, 'server');
-            
+
             await fs.ensureDir(clientPath);
             await fs.ensureDir(serverPath);
-            
-            p.advance(3, 'Scaffolding Vite frontend...');
-            if (activeTemplate.startsWith('vanilla')) {
-                await fs.copy(
-                    path.join(__dirname, 'templates', 'client-vanilla', `${activeTemplate}`),
-                    clientPath
-                );
-            }
-            else if (activeTemplate.startsWith('react')) {
-                await fs.copy(
-                    path.join(__dirname, 'templates', 'client-react', `${activeTemplate}`),
-                    clientPath
-                );
-            }
-            else if (activeTemplate.startsWith('vue')) {
-                await fs.copy(
-                    path.join(__dirname, 'templates', 'client-vue', `${activeTemplate}`),
-                    clientPath
-                );
-            }
-            else {
-                await execAsync(`npx --yes create-vite@latest "${clientPath}" --template ${activeTemplate}`);
-            }
-            
-            p.advance(5, 'Injecting server boilerplate...');
-            await fs.copy(
-                path.join(__dirname, 'templates', `server-${nodeFramework}`), 
-                serverPath
-            );
-            
-            p.advance(7, 'Handling any clean-ups...');
+
+            p.advance(1, 'Scaffolding Vite frontend...');
+            await copyTemplate([clientTemplateDirs[framework], `${framework}-${language}`], clientPath);
+
+            p.advance(1, 'Injecting server boilerplate...');
+            await copyTemplate([`server-${nodeFramework}`], serverPath);
+
+            p.advance(1, 'Handling any clean-ups...');
             await handleCleanup(clientPath, selectedTools);
 
             if (shouldGitInit) {
-                p.advance(9, 'Initializing local Git repository...');
+                p.advance(1, 'Initializing local Git repository...');
                 await initializeGit(targetPath);
             }
-            
+
             p.stop('Project generated successfully!');
             outro(`Your fullstack environment is ready at: ${targetPath}`);
         }
@@ -418,10 +348,10 @@ intro('Lazy Init');
 let userInput = process.argv[2];
 
 if (!userInput) {
-    userInput = await text({ 
-        message: 'Where do you want to initialize?', 
+    userInput = await text({
+        message: 'Where do you want to initialize?',
         placeholder: '"." for current folder'
-    }); 
+    });
     handleCancel(userInput);
 }
 
@@ -437,7 +367,7 @@ const projectType = await select({
 handleCancel(projectType);
 
 switch (projectType) {
-    case 'static': 
+    case 'static':
         await staticBuilder(targetPath);
         break;
     case 'dynamic':

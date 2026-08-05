@@ -49,29 +49,37 @@ my-app/
 ```
 
 ### 3. Dynamic (Unified Fullstack — Next.js)
-One app, no separate server. Follows the standard `create-next-app` layout (App Router + `src/` directory), minus the demo junk. Backend endpoints live right next to your pages as API routes.
+One app, no separate server. Follows the standard `create-next-app@latest` layout (App Router + `src/` directory), minus the demo junk. Backend endpoints live right next to your pages as API routes.
+
+TypeScript only — no language prompt — and GSAP + Lenis smooth scroll come pre-wired.
 
 ```Plaintext
 my-app/
 ├── src/
-│   └── app/
-│       ├── api/          # backend lives here (route.js handlers)
-│       ├── globals.css
-│       ├── layout.jsx (or .tsx)
-│       └── page.jsx (or .tsx)
+│   ├── app/
+│   │   ├── api/               # backend lives here (route.ts handlers)
+│   │   ├── globals.css
+│   │   ├── layout.tsx
+│   │   └── page.tsx
+│   └── components/
+│       └── lenisWrapper.tsx   # Lenis + GSAP ticker + ScrollTrigger sync
 ├── .gitignore
-├── eslint.config.mjs      # only when ESLint is selected
-├── jsconfig.json (or tsconfig.json)
-├── next.config.mjs (or .ts)
+├── eslint.config.mjs          # only when ESLint is selected
+├── next.config.ts
 ├── package.json
-└── postcss.config.mjs     # only when Tailwind is selected
+├── postcss.config.mjs         # only when Tailwind is selected
+└── tsconfig.json
 ```
+
+Lenis drives the scroll, GSAP's ticker drives Lenis, and `ScrollTrigger` stays in sync. The
+running instance is exported as `getLenis()` if you need it outside the wrapper.
 
 ### Current Stack Support
 #### __Frontend:__ 
 - Vanilla (JS/TS) 
 - React (JS/TS)
 - Vue (JS/TS)
+- Next.js (TS, unified preset)
 
 #### __Backend:__ 
 - Express.js
@@ -91,7 +99,8 @@ Features being built out as optional, opt-in prompts during setup:
 - [x] Optional ESLint setup
 - [x] Optional Tailwind CSS setup
 - [x] Unified fullstack architecture (Next.js)
-- [ ] Optional Creative Suite toggle (Installs GSAP + Lenis Smooth Scroll setup)
+- [x] GSAP + Lenis smooth scroll setup (baked into the Next.js preset)
+- [ ] Creative Suite toggle for the Vite presets (opt-in GSAP + Lenis)
 - [ ] API-only backend architecture setup (skips the frontend completely)
 - [ ] More backend frameworks (Fastify, Hono)
 - [ ] Svelte template
