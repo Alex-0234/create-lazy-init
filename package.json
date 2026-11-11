@@ -1,40 +1,45 @@
-{"name":"create-lazy-init",
-"version":"0.8.0",
-"type":"module",
-"license":"MIT",
-"author":"Alex Liska",
-"bin":{
-    "create-lazy-init":"./index.js"
-},
-"main":"index.js",
-"scripts":{ 
-    "dev":"node index.js"
-},
-"repository":{  
-    "type":"git",
-    "url":"git+https://github.com/Alex-0234/create-lazy-init.git"},
-"keywords":[
+{
+  "name": "create-lazy-init",
+  "version": "0.9.0",
+  "type": "module",
+  "license": "MIT",
+  "author": "Alex Liska",
+  "bin": {
+    "create-lazy-init": "./index.js"
+  },
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Alex-0234/create-lazy-init.git"
+  },
+  "keywords": [
     "cli",
     "scaffold",
-    "scaffolding",
-    "boilerplate",
-    "initializer",
     "create-app",
+    "template",
     "vite",
-    "express",
-    "fullstack",
-    "monorepo",
     "react",
-    "vue",
-    "vanilla",
-    "minimal",
-    "zero-fluff"
-],
-"bugs":{
-    "url":"https://github.com/Alex-0234/create-lazy-init/issues"
-},
-"homepage":"https://github.com/Alex-0234/create-lazy-init#readme",
-"dependencies":{
-    "@clack/prompts":"^1.5.1",
-    "fs-extra":"^11.3.5"
-}}
+    "nextjs",
+    "typescript",
+    "minimal"
+  ],
+  "bugs": {
+    "url": "https://github.com/Alex-0234/create-lazy-init/issues"
+  },
+  "homepage": "https://github.com/Alex-0234/create-lazy-init#readme",
+  "dependencies": {
+    "@clack/prompts": "^1.5.1",
+    "fs-extra": "^11.3.5"
+  },
+  "description": "Scaffold a clean React, Next.js or vanilla TypeScript project with zero demo content.",
+  "files": [
+    "index.js",
+    "templates"
+  ],
+  "engines": {
+    "node": ">=22.4"
+  },
+  "scripts": {
+    "dev": "node index.js"
+  }
+}
