@@ -1,0 +1,176 @@
+{
+  "base": ["router", "image", "data", "viewport", "use-media-query", "smooth-scroll", "user"],
+  "items": {
+    "router": {
+      "description": "Link + usePathname adapter so components work in Next.js and React Router",
+      "files": {
+        "next": ["lib/router.ts"],
+        "react": ["lib/router.ts", "lib/link.tsx"]
+      }
+    },
+    "image": {
+      "description": "Image adapter (next/image in Next.js, <img> in React)",
+      "files": {
+        "next": ["lib/image.ts"],
+        "react": ["lib/image.tsx"]
+      }
+    },
+    "data": {
+      "description": "Site details, navigation and component copy the components read from",
+      "files": ["data/site.ts", "data/navigation.ts", "data/texts.ts"]
+    },
+    "viewport": {
+      "description": "Shared media queries and window size helpers",
+      "files": ["utils/viewport.ts"]
+    },
+    "use-media-query": {
+      "description": "useMediaQuery hook (SSR safe)",
+      "files": ["hooks/useMediaQuery.ts"]
+    },
+    "smooth-scroll": {
+      "description": "Lenis smooth scroll driven by the GSAP ticker, synced with ScrollTrigger, plus scroll lock helpers (lib/scroll)",
+      "files": ["providers/smoothScroll.tsx", "lib/scroll.ts"],
+      "dependencies": {
+        "lenis": "^1.3.27",
+        "gsap": "^3.15.1"
+      }
+    },
+    "user": {
+      "description": "User context with login / logout boilerplate",
+      "files": ["providers/user.tsx", "hooks/useUser.ts"]
+    },
+    "scroll-timeline": {
+      "description": "Pinned stage with one scrubbed master GSAP timeline that sections append to",
+      "files": ["providers/scrollTimeline.tsx", "hooks/useScrollTimeline.ts"],
+      "dependencies": {
+        "gsap": "^3.15.1"
+      }
+    },
+    "button": {
+      "description": "Link or button with a sweep hover, solid / outline, dark / light surface",
+      "files": ["components/ui/button.tsx"],
+      "registryDependencies": ["router"]
+    },
+    "cursor": {
+      "description": "Custom cursor with variants driven by data-cursor attributes",
+      "files": ["components/ui/cursor.tsx"],
+      "registryDependencies": ["viewport", "use-media-query"]
+    },
+    "local-clock": {
+      "description": "Live clock in the site's time zone",
+      "files": ["components/ui/localClock.tsx"],
+      "registryDependencies": ["data"]
+    },
+    "menu-button": {
+      "description": "Accessible hamburger / close toggle",
+      "files": ["components/ui/menuButton.tsx"],
+      "registryDependencies": ["data"]
+    },
+    "scroll-hint": {
+      "description": "\"Scroll\" hint that fades out near the end of the page",
+      "files": ["components/ui/scrollHint.tsx"],
+      "dependencies": {
+        "lenis": "^1.3.27"
+      },
+      "registryDependencies": ["viewport", "data"]
+    },
+    "section-divider": {
+      "description": "Full-width row: TEXT ——— TEXT",
+      "files": ["components/ui/sectionDivider.tsx"]
+    },
+    "split-reveal": {
+      "description": "Text revealed line / word / char with GSAP SplitText",
+      "files": ["components/ui/splitReveal.tsx"],
+      "dependencies": {
+        "gsap": "^3.15.1",
+        "@gsap/react": "^2.1.2"
+      },
+      "registryDependencies": ["viewport"]
+    },
+    "wordmark": {
+      "description": "SVG text wordmark with a fixed aspect ratio",
+      "files": ["components/ui/wordmark.tsx"],
+      "registryDependencies": ["data"]
+    },
+    "framed-image": {
+      "description": "Cover image in a clipping frame with optional overscan for parallax",
+      "files": ["components/ui/framedImage.tsx"],
+      "registryDependencies": ["image"]
+    },
+    "growing-image": {
+      "description": "Framed image that grows to full screen on scroll",
+      "files": ["components/ui/growingImage.tsx"],
+      "dependencies": {
+        "gsap": "^3.15.1",
+        "@gsap/react": "^2.1.2"
+      },
+      "registryDependencies": ["framed-image", "image"]
+    },
+    "scroll-theme": {
+      "description": "Page colors that blend to another theme when a section scrolls in",
+      "files": ["components/ui/themeSwitch.tsx", "utils/theme.ts"],
+      "dependencies": {
+        "gsap": "^3.15.1",
+        "@gsap/react": "^2.1.2"
+      }
+    },
+    "contact-form": {
+      "description": "Contact form posting to Formspree (or mailto: fallback)",
+      "files": ["components/layout/contactForm.tsx"],
+      "registryDependencies": ["button", "router", "data"]
+    },
+    "header-bar": {
+      "description": "Fixed full-width bar with blend-mode text and a slide-down mobile menu",
+      "files": ["components/layout/headerBar.tsx"],
+      "dependencies": {
+        "lenis": "^1.3.27"
+      },
+      "registryDependencies": ["button", "menu-button", "wordmark", "router", "data"]
+    },
+    "header-floating": {
+      "description": "Floating logo + rounded nav pill, dropdown menu on mobile",
+      "files": ["components/layout/headerFloating.tsx"],
+      "registryDependencies": ["menu-button", "wordmark", "router", "data"]
+    },
+    "footer-reveal": {
+      "description": "Fixed footer revealed from under the page, with contact details and the contact form",
+      "files": ["components/layout/footerReveal.tsx"],
+      "dependencies": {
+        "lenis": "^1.3.27"
+      },
+      "registryDependencies": ["contact-form", "router", "data"]
+    },
+    "footer-big-type": {
+      "description": "Four-column footer with a giant word overflowing the bottom edge",
+      "files": ["components/layout/footerBigType.tsx"],
+      "registryDependencies": ["router", "data"]
+    },
+    "item-card": {
+      "description": "Product card (ItemCard, ItemCard.Image, ItemCard.Details)",
+      "files": ["components/layout/itemCard.tsx"],
+      "registryDependencies": ["image"]
+    },
+    "loading-screen": {
+      "description": "Once-per-session intro overlay with a counter, locks scroll while it runs",
+      "files": ["components/layout/loadingScreen.tsx", "utils/loader.ts"],
+      "dependencies": {
+        "gsap": "^3.15.1",
+        "@gsap/react": "^2.1.2"
+      },
+      "registryDependencies": ["wordmark", "viewport", "smooth-scroll"]
+    },
+    "hero-fullscreen": {
+      "description": "Full-screen hero, left or centered, with CTA buttons and a divider bar",
+      "files": ["components/sections/heroFullscreen.tsx"],
+      "registryDependencies": ["button", "section-divider", "data"]
+    },
+    "scroll-reveal-text": {
+      "description": "Paragraph that lights up character by character on scroll",
+      "files": ["components/sections/scrollRevealText.tsx"],
+      "dependencies": {
+        "gsap": "^3.15.1",
+        "@gsap/react": "^2.1.2"
+      }
+    }
+  }
+}

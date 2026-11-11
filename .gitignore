@@ -23,3 +23,6 @@ Thumbs.db
 .idea/
 *.suo
 *.ntvs*
+# local end-to-end test projects
+.e2e/
+*.tgz
